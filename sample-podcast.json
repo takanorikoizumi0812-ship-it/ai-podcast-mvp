@@ -1,0 +1,42 @@
+{
+  "episode": {
+    "id": "sample_episode_001",
+    "title": "小さく始めるための、面接練習Botという仮説",
+    "description": "総合型選抜AIコーチを考える中で、まず面接練習から始める可能性を考える短い試作エピソードです。",
+    "format": "solo",
+    "language": "ja-JP",
+    "targetDurationSec": 45
+  },
+  "audioSettings": {
+    "voice": "alloy",
+    "speed": 1.0,
+    "outputFormat": "mp3",
+    "backgroundMusic": false
+  },
+  "segments": [
+    {
+      "id": "segment_001",
+      "type": "hook",
+      "text": "総合型選抜のためのAIコーチは、本当に最初から包括的である必要があるのでしょうか。",
+      "voiceInstructions": "自然で落ち着いた話し方。考えながら話している印象。",
+      "pauseBeforeMs": 0,
+      "pauseAfterMs": 700
+    },
+    {
+      "id": "segment_002",
+      "type": "claim",
+      "text": "今は、面接練習Botから始める方がよいかもしれない、と考えています。これは結論ではなく、検証したい仮説です。",
+      "voiceInstructions": "押しつけず、率直に迷いも伝える話し方。",
+      "pauseBeforeMs": 0,
+      "pauseAfterMs": 900
+    },
+    {
+      "id": "segment_003",
+      "type": "takeaway",
+      "text": "大きな構想を持ちながらも、いちばん切実な一場面から始められないか。その問いを、これから確かめていきます。",
+      "voiceInstructions": "穏やかに締めくくる話し方。",
+      "pauseBeforeMs": 0,
+      "pauseAfterMs": 0
+    }
+  ]
+}
