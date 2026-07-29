@@ -1,59 +1,46 @@
-export type PodcastSegmentType =
-  | "hook"
-  | "theme"
-  | "experience"
-  | "claim"
-  | "counterargument"
-  | "conclusion"
-  | "takeaway";
+import { z } from "zod";
 
-export type Podcast = {
-  episode: {
-    id: string;
-    title: string;
-    description: string;
-    format: "solo";
-    language: "ja-JP";
-    targetDurationSec: number;
-  };
-  audioSettings: {
-    voice: "alloy" | "ash" | "ballad" | "coral" | "echo" | "fable" | "onyx" | "nova" | "sage" | "shimmer" | "verse";
-    speed: number;
-    outputFormat: "mp3";
-    backgroundMusic: false;
-  };
-  segments: Array<{
-    id: string;
-    type: PodcastSegmentType;
-    text: string;
-    voiceInstructions: string;
-    pauseBeforeMs: number;
-    pauseAfterMs: number;
-  }>;
-};
+export const PODCAST_VOICES = ["alloy", "ash", "ballad", "cedar", "coral", "echo", "fable", "marin", "nova", "onyx", "sage", "shimmer", "verse"] as const;
+export const PODCAST_SEGMENT_TYPES = ["hook", "theme", "experience", "claim", "counterargument", "conclusion", "takeaway"] as const;
+export const MAX_SEGMENTS = 100;
+export const MAX_PAUSE_MS = 30_000;
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
+const speakableText = z.string().trim().min(1).refine((value) => /[\p{L}\p{N}]/u.test(value), "text must contain readable characters");
+
+export const podcastSchema = z.object({
+  episode: z.object({
+    id: z.string().trim().min(1),
+    title: z.string().trim().min(1),
+    description: z.string().trim().min(1),
+    format: z.literal("solo"),
+    language: z.literal("ja-JP"),
+    targetDurationSec: z.number().int().positive()
+  }).strict(),
+  audioSettings: z.object({
+    voice: z.enum(PODCAST_VOICES),
+    speed: z.number().finite().min(0.25).max(4),
+    outputFormat: z.literal("mp3"),
+    backgroundMusic: z.literal(false)
+  }).strict(),
+  segments: z.array(z.object({
+    id: z.string().trim().min(1),
+    type: z.enum(PODCAST_SEGMENT_TYPES),
+    text: speakableText,
+    voiceInstructions: z.string().trim().min(1),
+    pauseBeforeMs: z.number().int().min(0).max(MAX_PAUSE_MS),
+    pauseAfterMs: z.number().int().min(0).max(MAX_PAUSE_MS)
+  }).strict()).min(1).max(MAX_SEGMENTS).superRefine((segments, context) => {
+    const ids = new Set<string>();
+    segments.forEach((segment, index) => {
+      if (ids.has(segment.id)) context.addIssue({ code: "custom", message: "segment IDs must be unique", path: [index, "id"] });
+      ids.add(segment.id);
+    });
+  })
+}).strict();
+
+export type Podcast = z.infer<typeof podcastSchema>;
+export type PodcastSegmentType = Podcast["segments"][number]["type"];
 
 export function validatePodcast(value: unknown): asserts value is Podcast {
-  if (!isRecord(value) || !isRecord(value.episode) || !isRecord(value.audioSettings) || !Array.isArray(value.segments)) {
-    throw new Error("Podcast JSON must include episode, audioSettings, and segments.");
-  }
-  const { episode, audioSettings, segments } = value;
-  if (episode.format !== "solo" || episode.language !== "ja-JP" || typeof episode.id !== "string" || typeof episode.title !== "string" || typeof episode.description !== "string" || !Number.isFinite(episode.targetDurationSec)) {
-    throw new Error("episode has invalid or missing required fields.");
-  }
-  const speed = audioSettings.speed;
-  if (audioSettings.outputFormat !== "mp3" || audioSettings.backgroundMusic !== false || typeof audioSettings.voice !== "string" || typeof speed !== "number" || !Number.isFinite(speed) || speed < 0.25 || speed > 4) {
-    throw new Error("audioSettings has invalid or missing required fields.");
-  }
-  if (segments.length === 0) throw new Error("Podcast must contain at least one segment.");
-  for (const segment of segments) {
-    if (!isRecord(segment)) throw new Error("A segment has invalid or missing required fields.");
-    const pauseBeforeMs = segment.pauseBeforeMs;
-    const pauseAfterMs = segment.pauseAfterMs;
-    if (typeof segment.id !== "string" || typeof segment.type !== "string" || typeof segment.text !== "string" || !segment.text.trim() || typeof segment.voiceInstructions !== "string" || typeof pauseBeforeMs !== "number" || typeof pauseAfterMs !== "number" || !Number.isInteger(pauseBeforeMs) || !Number.isInteger(pauseAfterMs) || pauseBeforeMs < 0 || pauseAfterMs < 0) {
-      throw new Error("A segment has invalid or missing required fields.");
-    }
-  }
+  podcastSchema.parse(value);
 }
